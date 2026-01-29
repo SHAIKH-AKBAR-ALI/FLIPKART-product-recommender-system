@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flipkart Product Recommender</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="card">
+            <div class="card-header">
+                <div class="bot-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="header-info">
+                    <h3>Flipkart Assistant</h3>
+                    <p><span class="status-dot"></span> AI Powered</p>
+                </div>
+            </div>
+
+            <div id="messageFormeight" class="msg_card_body">
+                <div class="d-flex justify-content-start">
+                    <div class="msg_cotainer welcome-msg">
+                        <div class="welcome-content">
+                            <h5>👋 Welcome to Flipkart Product Assistant!</h5>
+                            <p>I can help you find products based on customer reviews and ratings. Try asking:</p>
+                            <ul>
+                                <li>"Show me the best headphones"</li>
+                                <li>"What are customers saying about this product?"</li>
+                                <li>"Recommend products with good ratings"</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer">
+                <form id="messageArea" class="input-group">
+                    <input type="text" id="text" name="msg" placeholder="Ask me about any product..." class="type_msg" autocomplete="off" required/>
+                    <button type="submit" id="send" class="send_btn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate unique session ID for each page load
+        const sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        
+        function formatBotResponse(text) {
+            // Convert markdown-style formatting to HTML
+            let formatted = text
+                // Bold text **text** -> <strong>text</strong>
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                // Numbered lists
+                .replace(/^(\d+\.)\s+(.*)$/gm, '<div class="list-item"><span class="list-number">$1</span> $2</div>')
+                // Star ratings
+                .replace(/(\d+\.\d+)\/5\s+stars?/g, '<span class="rating">⭐ $1/5</span>')
+                // Line breaks
+                .replace(/\n/g, '<br>');
+            
+            return formatted;
+        }
+
+        $(document).ready(function() {
+            // Auto-scroll to bottom
+            function scrollToBottom() {
+                var messageBody = $('#messageFormeight');
+                messageBody.scrollTop(messageBody[0].scrollHeight);
+            }
+
+            $("#messageArea").on("submit", function(event) {
+                const date = new Date();
+                const hour = date.getHours();
+                const minute = date.getMinutes().toString().padStart(2, '0');
+                const str_time = hour + ":" + minute;
+                var rawText = $("#text").val();
+
+                if (!rawText.trim()) return;
+
+                // Add user message
+                var userHtml = '<div class="d-flex justify-content-end"><div class="msg_cotainer_send">' + rawText + '<span class="msg_time_send">' + str_time + '</span></div></div>';
+                $("#messageFormeight").append(userHtml);
+                $("#text").val("");
+                scrollToBottom();
+
+                // Show typing indicator
+                var typingHtml = '<div id="typing-indicator" class="d-flex justify-content-start"><div class="msg_cotainer typing"><div class="typing-dots"><span></span><span></span><span></span></div></div></div>';
+                $("#messageFormeight").append(typingHtml);
+                scrollToBottom();
+
+                $.ajax({
+                    data: { 
+                        msg: rawText,
+                        session_id: sessionId
+                    },
+                    type: "POST",
+                    url: "/get",
+                }).done(function(data) {
+                    // Remove typing indicator
+                    $("#typing-indicator").remove();
+                    
+                    // Format and add bot response
+                    var formattedData = formatBotResponse(data);
+                    var botHtml = '<div class="d-flex justify-content-start"><div class="msg_cotainer bot-response">' + formattedData + '<span class="msg_time">' + str_time + '</span></div></div>';
+                    $("#messageFormeight").append(botHtml);
+                    scrollToBottom();
+                }).fail(function() {
+                    $("#typing-indicator").remove();
+                    var errorHtml = '<div class="d-flex justify-content-start"><div class="msg_cotainer error">Sorry, I encountered an error. Please try again.<span class="msg_time">' + str_time + '</span></div></div>';
+                    $("#messageFormeight").append(errorHtml);
+                    scrollToBottom();
+                });
+                
+                event.preventDefault();
+            });
+        });
+    </script>
+</body>
+</html>
