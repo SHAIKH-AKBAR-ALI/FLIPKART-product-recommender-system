@@ -48,33 +48,28 @@ The system follows a standard RAG pipeline architecture:
 
 ```mermaid
 graph TD
-    %% User Layer
-    User[User / Browser] -->|HTTP Request| UI[Chatbot UI]
+    User[User or Browser] -->|HTTP Request| UI[Chatbot UI]
 
-    %% Application Layer
-    UI -->|REST Call| Flask[Flask Backend API]
+    UI -->|REST API Call| Flask[Flask Backend]
 
-    %% Orchestration Layer
-    Flask -->|Invoke Chain| LangChain[LangChain RAG Orchestrator]
+    Flask -->|Invoke Pipeline| LangChain[LangChain RAG Orchestrator]
 
-    %% Retrieval Phase
-    subgraph Retrieval Phase
-        LangChain -->|Rewrite Query + History| HAR[History-Aware Retriever]
-        HAR -->|Semantic Vector Search| AstraDB[(Astra DB<br/>Vector Store)]
-        AstraDB -->|Top-K Documents| Context[Retrieved Context]
+    subgraph Retrieval_Phase
+        LangChain -->|Rewrite Query with History| HAR[History Aware Retriever]
+        HAR -->|Vector Search| AstraDB[Astra DB Vector Store]
+        AstraDB -->|Top K Documents| Context[Retrieved Context]
     end
 
-    %% Generation Phase
-    subgraph Generation Phase
-        Context -->|Inject Context| Prompt[Prompt Template<br/>(System + User)]
+    subgraph Generation_Phase
+        Context --> Prompt[Prompt Template]
         Prompt -->|LLM Inference| Groq[Groq LLM]
     end
 
-    %% Response Flow
     Groq -->|Generated Answer| LangChain
     LangChain -->|Final Response| Flask
     Flask -->|JSON Response| UI
-    UI -->|Display Answer| User
+    UI -->|Display Result| User
+
 
 
 ```
