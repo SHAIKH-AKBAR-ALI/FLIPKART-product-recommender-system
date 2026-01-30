@@ -48,22 +48,24 @@ The system follows a standard RAG pipeline architecture:
 
 ```mermaid
 graph TD
-    User[User Query] -->|Input| WebApp[Flask Application]
-    WebApp -->|Process| Chain[LangChain RAG Pipeline]
-    
-    subgraph "Retrieval Phase"
-    Chain -->|Query Transformation| History[History Aware Retriever]
-    History -->|Semantic Search| AstraDB[(Astra DB Vector Store)]
-    AstraDB -->|Return Documents| Context[Product Context]
+    User[User Query] -->|HTTP Request| WebApp[Flask Application]
+    WebApp -->|Invoke| Chain[LangChain RAG Pipeline]
+
+    subgraph Retrieval Phase
+        Chain -->|Rewrite Query| HAR[History Aware Retriever]
+        HAR -->|Vector Search| AstraDB[(Astra DB Vector Store)]
+        AstraDB -->|Relevant Docs| Context[Retrieved Context]
     end
-    
-    subgraph "Generation Phase"
-    Context -->|Combine| Prompt[System Prompt]
-    Prompt -->|Inference| Groq[Groq LLM]
+
+    subgraph Generation Phase
+        Context --> Prompt[Prompt Template]
+        Prompt -->|Inference| Groq[Groq LLM]
     end
-    
-    Groq -->|Response| WebApp
-    WebApp -->|Display| User
+
+    Groq -->|LLM Response| Chain
+    Chain -->|Final Answer| WebApp
+    WebApp -->|UI Response| User
+
 ```
 
 ## 🔄 Project Workflow
